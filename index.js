@@ -1,3 +1,5 @@
+import { wordList } from "./wordList.js";
+
 const FPS = 30;
 const FRICTION = 0.7; //frictino coeff of space (0 to 1)
 const PLAYER_SIZE = 30; //player pixel height
@@ -7,8 +9,9 @@ const PLAYER_DEATH_DUR = 0.3; //duration until player respawn
 const PLAYER_INVUL_DUR = 3; //duration of invulnerability
 const PLAYER_BLINK_DUR = 0.1; //flashing during invuln mode
 const LINE_THICKNESS = 1.5;
-const ASTEROID_NUM = 10; //starting asteroid num
+const ASTEROID_NUM = 3; //starting asteroid num
 const ASTEROID_SIZE = 100; //max size
+const ASTEROID_MIN_SIZE = 10; //min size
 const ASTEROID_SPEED = 60; //max speed
 const ASTEROID_VERT = 10; //average num of verticies
 const ASTEROID_JAG = 0.3; //asteroid jaggedness (0 to 1)
@@ -36,6 +39,7 @@ function createAsteroidBelt() {
     asteroids = [];
     for (var i = 0; i < ASTEROID_NUM; i++) {
         do {
+            var x, y, r;
             x = Math.floor(Math.random() * canv.width);
             y = Math.floor(Math.random() * canv.height);
             r = ASTEROID_SIZE;
@@ -53,13 +57,43 @@ function newAsteroid(x, y, r) {
         yv: Math.random() * ASTEROID_SPEED / FPS * (Math.random() < 0.5 ? 1 : -1),
         a: Math.random() * Math.PI * 2, //radian
         vert: Math.floor(Math.random() * (ASTEROID_VERT + 1) + ASTEROID_VERT / 2),
-        offs: []
+        offs: [],
+        word: {
+            text: randWord(),
+            untypedCharIdx: 0
+        }
     }
     //create vertex offsets
     for (var i = 0; i < asteroid.vert; i++) {
         asteroid.offs.push(Math.random() * ASTEROID_JAG * 2 + 1 - ASTEROID_JAG);
     }
     return asteroid;
+}
+
+function destroyAsteroid(ast) {
+    console.log(asteroids);
+    var x, y, r, idx;
+    x = ast.x;
+    y = ast.y;
+    r = ast.r;
+
+    idx = asteroids.indexOf(ast);
+    if (idx !== -1) {
+        asteroids.splice(idx, 1);
+    }
+    console.log(asteroids);
+    console.log(r, r / 2);
+    if (r / 2 > ASTEROID_MIN_SIZE) {
+        for (var i = 0; i < 3; i++) {
+
+            asteroids.push(newAsteroid(x, y, r));
+        }
+    }
+}
+
+function randWord() {
+    var randIdx = Math.floor(Math.random() * wordList.length);
+    return wordList[randIdx];
 }
 
 function distBetweenPoints(x1, y1, x2, y2) {
@@ -108,6 +142,10 @@ function keyDown(/** @type {KeyboardEvent} */ ev) {
         case 'ArrowUp':
             player.thrusting = true;
             break;
+
+    }
+    if (ev.code.length > 3 && ev.code.slice(0, 3) == "Key") {
+        var char = ev.code.slice(3);
     }
 
 }
@@ -222,7 +260,7 @@ function update() {
     }
 
     //draw asteroids
-    var x, y, r, a, vert, offs;
+    var x, y, r, a, vert, offs, word;
     for (var i = 0; i < asteroids.length; i++) {
         x = asteroids[i].x;
         y = asteroids[i].y;
@@ -230,6 +268,7 @@ function update() {
         a = asteroids[i].a;
         vert = asteroids[i].vert;
         offs = asteroids[i].offs;
+        word = asteroids[i].word;
 
         //draw path
         ctx.strokeStyle = "slategrey"
@@ -250,6 +289,11 @@ function update() {
         ctx.closePath();
         ctx.stroke();
 
+        //draw word
+        ctx.strokeStyle = "slategrey"
+        ctx.font = "25px Lucida Console";
+        ctx.strokeText(word.text, x, y - r * 1.3);
+
         if (SHOW_BOUNDING) {
             ctx.strokeStyle = "lime";
             ctx.beginPath();
@@ -269,6 +313,7 @@ function update() {
             for (var i = 0; i < asteroids.length; i++) {
                 if (distBetweenPoints(player.x, player.y, asteroids[i].x, asteroids[i].y) < player.r + asteroids[i].r) {
                     playerDeath();
+                    destroyAsteroid(asteroids[i]);
                 }
             }
         }
