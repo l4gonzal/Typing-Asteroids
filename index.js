@@ -12,7 +12,7 @@ const LINE_THICKNESS = 1.5;
 const ASTEROID_NUM = 3; //starting asteroid num
 const ASTEROID_SIZE = 100; //max size
 const ASTEROID_MIN_SIZE = 10; //min size
-const ASTEROID_SPEED = 60; //max speed
+const ASTEROID_SPEED = 30; //max speed
 const ASTEROID_VERT = 10; //average num of verticies
 const ASTEROID_JAG = 0.3; //asteroid jaggedness (0 to 1)
 
@@ -28,6 +28,8 @@ var player = newPlayer();
 
 var asteroids = [];
 createAsteroidBelt();
+
+var typedChar = '/';
 
 //Event Handling
 document.addEventListener("keydown", keyDown);
@@ -71,7 +73,6 @@ function newAsteroid(x, y, r) {
 }
 
 function destroyAsteroid(ast) {
-    console.log(asteroids);
     var x, y, r, idx;
     x = ast.x;
     y = ast.y;
@@ -81,8 +82,6 @@ function destroyAsteroid(ast) {
     if (idx !== -1) {
         asteroids.splice(idx, 1);
     }
-    console.log(asteroids);
-    console.log(r, r / 2);
     if (r / 2 > ASTEROID_MIN_SIZE) {
         for (var i = 0; i < 3; i++) {
 
@@ -145,7 +144,7 @@ function keyDown(/** @type {KeyboardEvent} */ ev) {
 
     }
     if (ev.code.length > 3 && ev.code.slice(0, 3) == "Key") {
-        var char = ev.code.slice(3);
+        typedChar = ev.code.slice(3).toLowerCase();
     }
 
 }
@@ -164,9 +163,12 @@ function keyUp(/** @type {KeyboardEvent} */ ev) {
     }
 }
 
+
+
 function update() {
     var blinkOn = player.blinkNum % 2 == 0;
     var isPlayerDead = player.deathDur > 0;
+    
     //draw bg
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canv.width, canv.height);
@@ -313,10 +315,28 @@ function update() {
             for (var i = 0; i < asteroids.length; i++) {
                 if (distBetweenPoints(player.x, player.y, asteroids[i].x, asteroids[i].y) < player.r + asteroids[i].r) {
                     playerDeath();
-                    destroyAsteroid(asteroids[i]);
                 }
             }
         }
+
+        //check for correctly typed char (reset word if next typed is wrong)        
+        var lastTyped, astWord, astIdx;
+        lastTyped = typedChar;
+        for (var i = 0; i < asteroids.length; i++) {
+            astWord = asteroids[i].word.text;
+            astIdx = asteroids[i].word.untypedCharIdx;
+            console.log(astWord, astWord[astIdx], lastTyped);
+            console.log("-----");
+            if (lastTyped == astWord[astIdx]) {
+                astIdx++;
+                asteroids[i].word.untypedCharIdx = astIdx;
+                if(astIdx == astWord.length){
+                    destroyAsteroid(asteroids[i]);
+                }
+            }
+            typedChar = '/';
+        }
+        lastTyped = '/';
 
         //player rotation
         player.a += player.rot;
