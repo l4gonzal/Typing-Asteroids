@@ -90,6 +90,12 @@ function destroyAsteroid(ast) {
     }
 }
 
+function resetAllTyped() {
+    for (var i = 0; i < asteroids.length; i++) {
+        asteroids[i].word.untypedCharIdx = 0;
+    }
+}
+
 function randWord() {
     var randIdx = Math.floor(Math.random() * wordList.length);
     return wordList[randIdx];
@@ -168,7 +174,7 @@ function keyUp(/** @type {KeyboardEvent} */ ev) {
 function update() {
     var blinkOn = player.blinkNum % 2 == 0;
     var isPlayerDead = player.deathDur > 0;
-    
+
     //draw bg
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canv.width, canv.height);
@@ -292,9 +298,32 @@ function update() {
         ctx.stroke();
 
         //draw word
-        ctx.strokeStyle = "slategrey"
-        ctx.font = "25px Lucida Console";
-        ctx.strokeText(word.text, x, y - r * 1.3);
+        switch (asteroids[i].r) {
+            case 50:
+                ctx.font = "35px Lucida Console";
+                break;
+            case 25:
+                ctx.font = "25px Lucida Console";
+                break;
+            default:
+                ctx.font = "18px Lucida Console";
+        }
+        for (var j = 0; j < asteroids[i].word.text.length; j++) {
+            var astText, astChIdx, typedStr, untypedStr, typedOffs;
+            astText = asteroids[i].word.text;
+            astChIdx = asteroids[i].word.untypedCharIdx;
+            //console.log("asteroid "+i,asteroids[i].word.text.length);
+            //console.log(j,asteroids[i].word.untypedCharIdx);
+            typedStr = astText.substring(0, astChIdx);
+            typedOffs = ctx.measureText(typedStr).width;
+            untypedStr = astText.substring(astChIdx, astText.length);
+
+            ctx.strokeStyle = "white";
+            ctx.strokeText(typedStr, x, y - r * 1.3);
+            ctx.strokeStyle = "slategrey";
+            ctx.strokeText(untypedStr, x + typedOffs, y - r * 1.3);
+
+        }
 
         if (SHOW_BOUNDING) {
             ctx.strokeStyle = "lime";
@@ -314,6 +343,7 @@ function update() {
             //check for collision
             for (var i = 0; i < asteroids.length; i++) {
                 if (distBetweenPoints(player.x, player.y, asteroids[i].x, asteroids[i].y) < player.r + asteroids[i].r) {
+                    resetAllTyped();
                     playerDeath();
                 }
             }
@@ -330,9 +360,12 @@ function update() {
             if (lastTyped == astWord[astIdx]) {
                 astIdx++;
                 asteroids[i].word.untypedCharIdx = astIdx;
-                if(astIdx == astWord.length){
+                if (astIdx == astWord.length) {
                     destroyAsteroid(asteroids[i]);
                 }
+            }
+            else if (lastTyped != '/') {//reset typed progress if wrong letter is typed
+                asteroids[i].word.untypedCharIdx = 0;
             }
             typedChar = '/';
         }
